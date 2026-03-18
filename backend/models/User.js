@@ -2,13 +2,13 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
-  role: { type: String, enum: ["Student", "Professor"], required: true },
-  name: { type: String },
-  username: { type: String }, // students may have username
   email: { type: String, unique: true, required: true },
   password: { type: String, required: true },
-  isVerified: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
+  role: { type: String, required: true, enum: ['Student', 'Professor'] },
+  // Notice these are NOT required at the database level so Mongoose won't crash
+  username: { type: String, unique: true, sparse: true }, 
+  name: { type: String },
+  isVerified: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model("User", userSchema);

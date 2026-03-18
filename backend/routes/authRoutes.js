@@ -2,10 +2,11 @@
 const router = require("express").Router();
 const ctrl = require("../controllers/authController");
 
-router.post("/send-otp", ctrl.sendOTP);       // { email, role }
-router.post("/signup", ctrl.signup);           // { name, username, email, password, otp, role }
-router.post("/login", ctrl.login);             // { email, password }
-router.post("/forgot", ctrl.forgotPassword);   // { email }
-router.post("/reset", ctrl.resetPassword);     // { email, otp, newPassword }
+router.post("/send-otp", ctrl.sendOTP);       
+router.post("/verify-otp", ctrl.verifyOTP);    // ADD THIS LINE
+router.post("/signup", ctrl.signup);          
+router.post("/login", ctrl.login);            
+router.post("/forgot", ctrl.forgotPassword);  
+router.post("/reset", ctrl.resetPassword);    
 
 module.exports = router;

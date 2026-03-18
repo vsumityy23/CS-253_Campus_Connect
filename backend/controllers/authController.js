@@ -18,6 +18,10 @@ exports.sendOTP = async (req, res) => {
     if (!email) return res.status(400).json({ msg: "Email required" });
     if (!isIITK(email)) return res.status(400).json({ msg: "Use IITK email (@iitk.ac.in)" });
 
+    // CHECK IF USER ALREADY EXISTS (Prevents step 1 from proceeding if already signed up)
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) return res.status(400).json({ msg: "Email is already registered. Please log in." });
+
     if (role === "Professor") {
       const prof = await Professor.findOne({ email: email.toLowerCase() });
       if (!prof) return res.status(403).json({ msg: "Email not in professor database" });
@@ -26,9 +30,7 @@ exports.sendOTP = async (req, res) => {
     // generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // remove previous OTPs for this email
     await OTP.deleteMany({ email: email.toLowerCase() });
-
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     await OTP.create({ email: email.toLowerCase(), otp, expiresAt });
 
@@ -40,38 +42,56 @@ exports.sendOTP = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+exports.verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ msg: "Missing fields" });
 
+    const record = await OTP.findOne({ email: email.toLowerCase() });
+    if (!record || record.otp !== otp) {
+      return res.status(400).json({ msg: "Invalid or expired OTP" });
+    }
+
+    // Do NOT delete the OTP here, we need it for the final signup step.
+    res.json({ msg: "OTP verified successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
 exports.signup = async (req, res) => {
   try {
     const { name, username, email, password, otp, role } = req.body;
     if (!email || !password || !otp || !role) return res.status(400).json({ msg: "Missing fields" });
-    if (!isIITK(email)) return res.status(400).json({ msg: "Use IITK email (@iitk.ac.in)" });
-
-    // Verify OTP
+    
+    // Verify OTP again just to be secure on final submission
     const record = await OTP.findOne({ email: email.toLowerCase() });
     if (!record || record.otp !== otp) return res.status(400).json({ msg: "Invalid or expired OTP" });
 
-    // optional: ensure professor email exists (we already checked on sendOTP but double-check)
+    // Role-specific validation
+    if (role === "Student") {
+      if (!username) return res.status(400).json({ msg: "Username is required for students" });
+      const existingUsername = await User.findOne({ username: username.trim() });
+      if (existingUsername) return res.status(400).json({ msg: "Username is already taken" });
+    }
+
     if (role === "Professor") {
+      if (!name) return res.status(400).json({ msg: "Full name is required for professors" });
       const prof = await Professor.findOne({ email: email.toLowerCase() });
       if (!prof) return res.status(403).json({ msg: "Not authorized professor" });
     }
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) return res.status(400).json({ msg: "User already exists with this email" });
-
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
       role,
-      name: name || "",
-      username: username || "",
+      name: role === "Professor" ? name : "",
+      username: role === "Student" ? username.trim() : "",
       email: email.toLowerCase(),
       password: hashed,
       isVerified: true
     });
 
-    // remove used OTP
-    await OTP.deleteMany({ email: email.toLowerCase() });
+    await OTP.deleteMany({ email: email.toLowerCase() }); // Clear OTP now that account is created
 
     res.json({ msg: "Signup successful", user: { id: user._id, email: user.email, role: user.role } });
   } catch (err) {
