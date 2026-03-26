@@ -248,7 +248,7 @@ function DashboardLayout({ children }) {
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* TOP NAVBAR */}
-        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-10">
+        <header className="relative z-50 h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
               <LayoutDashboard size={20} />

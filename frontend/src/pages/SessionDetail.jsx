@@ -4,7 +4,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import DashboardLayout from "../layouts/dashboard_layout";
 import {
   Send,
-  Star,
   ArrowLeft,
   MessageSquare,
   ShieldCheck,
@@ -23,16 +22,20 @@ export default function SessionDetail() {
 
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [replyingTo, setReplyingTo] = useState(null); // Stores the comment object being replied to
+  const [replyingTo, setReplyingTo] = useState(null);
 
   const [ratings, setRatings] = useState({});
   const [feedbackText, setFeedbackText] = useState("");
-  const [hasSubmittedFeedback, setHasSubmittedFeedback] = useState(false); // Locks feedback
+  const [hasSubmittedFeedback, setHasSubmittedFeedback] = useState(false);
   const [toast, setToast] = useState("");
+
   const messagesEndRef = useRef(null);
   const prevCountRef = useRef(0);
-  const user = JSON.parse(localStorage.getItem("user")) || {};
-  const isStudent = user.role === "Student";
+
+  // Safely grab the current user ID (Handles both 'id' and '_id' variations)
+  const currentUser = JSON.parse(localStorage.getItem("user")) || {};
+  const currentUserId = currentUser.id || currentUser._id;
+  const isStudent = currentUser.role === "Student";
 
   const mcqParams = [
     { key: "content", label: "Content Quality" },
@@ -47,7 +50,6 @@ export default function SessionDetail() {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  // Fetch Feedback Status on Load
   useEffect(() => {
     if (isStudent) {
       fetch(`${API_BASE}/api/engage/session/${sessionId}/feedback-status`, {
@@ -59,7 +61,6 @@ export default function SessionDetail() {
     }
   }, [sessionId, isStudent]);
 
-  // NEAR REAL-TIME POLLING: Fetch comments every 3 seconds
   const fetchComments = () => {
     fetch(`${API_BASE}/api/engage/session/${sessionId}/comments`, {
       headers: getHeaders(),
@@ -70,14 +71,12 @@ export default function SessionDetail() {
   };
 
   useEffect(() => {
-    fetchComments(); // Initial load
-    const intervalId = setInterval(fetchComments, 3000); // Poll every 3 seconds
-    return () => clearInterval(intervalId); // Cleanup on unmount
+    fetchComments();
+    const intervalId = setInterval(fetchComments, 3000);
+    return () => clearInterval(intervalId);
   }, [sessionId]);
 
-  // Auto-scroll to bottom of chat
   useEffect(() => {
-    // ONLY scroll down if a NEW message was actually added
     if (comments.length > prevCountRef.current) {
       messagesEndRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -106,7 +105,7 @@ export default function SessionDetail() {
       const data = await res.json();
       setComments([...comments, data]);
       setNewComment("");
-      setReplyingTo(null); // Clear reply state
+      setReplyingTo(null);
     } catch (err) {
       console.error(err);
     }
@@ -138,7 +137,6 @@ export default function SessionDetail() {
     }
   };
 
-  // UPDATED: Helper to format Date and Time
   const formatDateTime = (dateString) => {
     const d = new Date(dateString);
     const datePart = d.toLocaleDateString("en-US", {
@@ -155,7 +153,6 @@ export default function SessionDetail() {
   return (
     <DashboardLayout>
       <div className="min-h-[calc(100vh-5rem)] font-sans flex flex-col relative pb-6">
-        {/* TOAST */}
         {toast && (
           <div
             className={`fixed top-6 right-6 z-[100] px-6 py-4 rounded-2xl shadow-xl font-bold animate-in slide-in-from-top-4 flex items-center gap-3 ${toast.includes("Error") ? "bg-red-50 text-red-800 border-red-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"} border`}
@@ -173,11 +170,9 @@ export default function SessionDetail() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
-          {/* LEFT: WHATSAPP STYLE CHAT */}
           <div
             className={`bg-white rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col h-[780px] overflow-hidden ${isStudent ? "lg:col-span-2" : "lg:col-span-3"}`}
           >
-            {/* Chat Header */}
             <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between z-10">
               <h3 className="font-black text-slate-900 text-xl flex items-center gap-3">
                 <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
@@ -196,7 +191,6 @@ export default function SessionDetail() {
               )}
             </div>
 
-            {/* Chat Messages Area (WhatsApp Style) */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f8f9fa] custom-scrollbar">
               {comments.length === 0 ? (
                 <div className="text-center text-slate-400 py-32 font-bold text-lg">
@@ -204,13 +198,19 @@ export default function SessionDetail() {
                 </div>
               ) : (
                 comments.map((msg) => {
-                  const isMe = msg.user._id === user._id;
-                  const isProf = msg.user.role === "Professor";
-                  const displayName = isProf
-                    ? msg.user.name
-                    : `@${msg.user.username}`;
+                  // BULLETPROOF IDENTITY CHECK
+                  const msgUserId = msg.user?._id || msg.user;
+                  const isMe = Boolean(
+                    currentUserId &&
+                    msgUserId &&
+                    String(msgUserId) === String(currentUserId),
+                  );
 
-                  // Styles based on WhatsApp layout (Me = Right/Indigo, Other = Left/White)
+                  const isProf = msg.user?.role === "Professor";
+                  const displayName = isProf
+                    ? msg.user?.name
+                    : `@${msg.user?.username || "Unknown"}`;
+
                   const bubbleBg = isMe
                     ? "bg-indigo-600 text-white rounded-br-sm"
                     : isProf
@@ -226,7 +226,6 @@ export default function SessionDetail() {
                       className={`flex flex-col ${isMe ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 group`}
                     >
                       <div className="flex items-end gap-2">
-                        {/* Reply Button (Only show on hover for others' messages) */}
                         {!isMe && (
                           <button
                             onClick={() => setReplyingTo(msg)}
@@ -237,7 +236,6 @@ export default function SessionDetail() {
                         )}
 
                         <div className="flex flex-col">
-                          {/* Name Header */}
                           {!isMe && (
                             <span
                               className={`text-[10px] font-black uppercase mb-1 tracking-widest ${isProf ? "text-purple-600" : "text-slate-400"}`}
@@ -246,12 +244,11 @@ export default function SessionDetail() {
                             </span>
                           )}
 
-                          {/* Message Bubble */}
                           <div
                             className={`max-w-md p-3 rounded-2xl text-sm font-medium shadow-sm relative ${bubbleBg}`}
                           >
-                            {/* Threaded Reply Context Block */}
-                            {msg.replyTo && (
+                            {/* BULLETPROOF REPLY BLOCK */}
+                            {msg.replyTo && msg.replyTo.user && (
                               <div
                                 className={`p-2 rounded-lg mb-2 text-[11px] ${quotedBg}`}
                               >
@@ -260,7 +257,7 @@ export default function SessionDetail() {
                                 >
                                   {msg.replyTo.user.role === "Professor"
                                     ? msg.replyTo.user.name
-                                    : `@${msg.replyTo.user.username}`}
+                                    : `@${msg.replyTo.user.username || "Unknown"}`}
                                 </span>
                                 <span className="line-clamp-2 opacity-90">
                                   {msg.replyTo.text}
@@ -268,10 +265,8 @@ export default function SessionDetail() {
                               </div>
                             )}
 
-                            {/* UPDATED: Increased padding bottom and right to fit the date */}
                             <p className="pr-20 pb-3">{msg.text}</p>
 
-                            {/* Timestamp inside bubble */}
                             <span
                               className={`absolute bottom-2 right-3 text-[9px] font-bold whitespace-nowrap ${isMe ? "text-indigo-200" : "text-slate-400"}`}
                             >
@@ -280,7 +275,6 @@ export default function SessionDetail() {
                           </div>
                         </div>
 
-                        {/* Reply Button for MY messages */}
                         {isMe && (
                           <button
                             onClick={() => setReplyingTo(msg)}
@@ -297,17 +291,15 @@ export default function SessionDetail() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
             <div className="bg-white border-t border-slate-200 flex flex-col z-10">
-              {/* Replying To Indicator */}
-              {replyingTo && (
+              {replyingTo && replyingTo.user && (
                 <div className="bg-slate-100 px-6 py-3 flex items-center justify-between border-l-4 border-indigo-500">
                   <div>
                     <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">
                       Replying to{" "}
                       {replyingTo.user.role === "Professor"
                         ? replyingTo.user.name
-                        : `@${replyingTo.user.username}`}
+                        : `@${replyingTo.user.username || "Unknown"}`}
                     </span>
                     <p className="text-sm text-slate-500 line-clamp-1">
                       {replyingTo.text}
@@ -349,7 +341,6 @@ export default function SessionDetail() {
             </div>
           </div>
 
-          {/* RIGHT: COMPULSORY MCQ FEEDBACK (Students Only) */}
           {isStudent && (
             <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden h-fit border-4 border-slate-800">
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] -mr-20 -mt-20 pointer-events-none"></div>
