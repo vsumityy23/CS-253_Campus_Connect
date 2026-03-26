@@ -30,7 +30,7 @@ export default function SessionDetail() {
   const [hasSubmittedFeedback, setHasSubmittedFeedback] = useState(false); // Locks feedback
   const [toast, setToast] = useState("");
   const messagesEndRef = useRef(null);
-const prevCountRef = useRef(0);
+  const prevCountRef = useRef(0);
   const user = JSON.parse(localStorage.getItem("user")) || {};
   const isStudent = user.role === "Student";
 
@@ -76,8 +76,6 @@ const prevCountRef = useRef(0);
   }, [sessionId]);
 
   // Auto-scroll to bottom of chat
-
-  // 2. Replace the old auto-scroll useEffect with this smarter one
   useEffect(() => {
     // ONLY scroll down if a NEW message was actually added
     if (comments.length > prevCountRef.current) {
@@ -88,6 +86,7 @@ const prevCountRef = useRef(0);
       prevCountRef.current = comments.length;
     }
   }, [comments]);
+
   const handleSendComment = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -139,12 +138,18 @@ const prevCountRef = useRef(0);
     }
   };
 
-  // Helper to format time
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
+  // UPDATED: Helper to format Date and Time
+  const formatDateTime = (dateString) => {
+    const d = new Date(dateString);
+    const datePart = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    const timePart = d.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
+    return `${datePart}, ${timePart}`;
   };
 
   return (
@@ -263,13 +268,14 @@ const prevCountRef = useRef(0);
                               </div>
                             )}
 
-                            <p className="pr-12">{msg.text}</p>
+                            {/* UPDATED: Increased padding bottom and right to fit the date */}
+                            <p className="pr-20 pb-3">{msg.text}</p>
 
                             {/* Timestamp inside bubble */}
                             <span
-                              className={`absolute bottom-2 right-3 text-[9px] font-bold ${isMe ? "text-indigo-200" : "text-slate-400"}`}
+                              className={`absolute bottom-2 right-3 text-[9px] font-bold whitespace-nowrap ${isMe ? "text-indigo-200" : "text-slate-400"}`}
                             >
-                              {formatTime(msg.createdAt)}
+                              {formatDateTime(msg.createdAt)}
                             </span>
                           </div>
                         </div>
