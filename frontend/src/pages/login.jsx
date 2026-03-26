@@ -84,10 +84,14 @@ function Login() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      setTimeout(() => {
-        if (data.user.role === "Professor") navigate("/professor-dashboard");
-        else navigate("/student-dashboard");
-      }, 1500);
+setTimeout(() => {
+  // Redirection based on Role
+  if (data.user.role === "Professor") {
+    navigate("/courses"); // Or "/manage-courses" if that's your pref
+  } else {
+    navigate("/courses"); // Redirect Students to their course viewer
+  }
+}, 1500);
     } catch (err) {
       setToast({ type: "error", message: err.message });
     } finally {

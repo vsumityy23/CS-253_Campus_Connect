@@ -125,6 +125,7 @@ exports.signup = async (req, res) => {
   }
 };
 
+// backend/controllers/authController.js -> login function update
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -138,7 +139,18 @@ exports.login = async (req, res) => {
 
     const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
 
-    res.json({ msg: "Login success", token, user: { id: user._id, email: user.email, role: user.role, name: user.name } });
+    // ADDED: username to the response payload for Students
+    res.json({ 
+      msg: "Login success", 
+      token, 
+      user: { 
+        id: user._id, 
+        email: user.email, 
+        role: user.role, 
+        name: user.name, 
+        username: user.username // Crucial for Student Dashboard visibility
+      } 
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });

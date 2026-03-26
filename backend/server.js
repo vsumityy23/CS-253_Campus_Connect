@@ -6,6 +6,12 @@ const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const courseRoutes = require("./routes/courseRoutes");
+
+const discussionRoutes = require("./routes/discussionRoutes");
+
+
+
 
 const app = express();
 app.use(cors());
@@ -20,9 +26,13 @@ mongoose
     console.error("MongoDB connection error:", err.message);
     process.exit(1);
   });
-
+app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use('/api/forum', require('./routes/forumRoutes'));
+app.use("/api/courses", courseRoutes);
+app.use("/api/engage",discussionRoutes)
+app.use('/api/users', require('./routes/userRoutes'));
 
 app.get("/", (req, res) => res.send("CampusConnect backend running"));
 

@@ -1,270 +1,247 @@
-import { useState } from "react";
+// src/pages/ProfessorDashboard.jsx
+import { useState, useEffect } from "react";
 import DashboardLayout from "../layouts/dashboard_layout";
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import {
- Chart as ChartJS,
- CategoryScale,
- LinearScale,
- BarElement,
- Title,
- Tooltip,
- Legend,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
 } from "chart.js";
+import {
+  BarChart3,
+  AlertCircle,
+  MessageSquareQuote,
+  TrendingUp,
+} from "lucide-react";
 
+// Register both Bar and Line elements
 ChartJS.register(
- CategoryScale,
- LinearScale,
- BarElement,
- Title,
- Tooltip,
- Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
 );
 
-function ProfessorDashboard() {
- const [selectedCourse, setSelectedCourse] = useState("");
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
- // Mock Data for Comments
- const [comments, setComments] = useState([
-  {
-   id: 1,
-   course: "Operating Systems",
-   text:
-    "The explanation of Semaphore logic was a bit too fast. Could we get more examples?",
-   upvotes: 12,
-   downvotes: 2,
-   replies: [],
-  },
-  {
-   id: 2,
-   course: "Operating Systems",
-   text:
-    "Loving the hands-on lab sessions! Very helpful for understanding kernel threads.",
-   upvotes: 24,
-   downvotes: 0,
-   replies: ["Glad you're enjoying them! We will add a Pintos lab next week."],
-  },
-  {
-   id: 3,
-   course: "Data Structures",
-   text:
-    "The assignment on Red-Black trees was extremely difficult compared to the lecture content.",
-   upvotes: 18,
-   downvotes: 1,
-   replies: [],
-  },
-  {
-   id: 4,
-   course: "Data Structures",
-   text: "Can we have a doubt-clearing session before the mid-sem?",
-   upvotes: 30,
-   downvotes: 0,
-   replies: [],
-  },
-  {
-   id: 5,
-   course: "Computer Networks",
-   text: "The slide deck for TCP/IP is missing the diagrams shown in class.",
-   upvotes: 5,
-   downvotes: 8,
-   replies: [],
-  },
-  {
-   id: 6,
-   course: "Operating Systems",
-   text: "Is the final exam going to be open-book?",
-   upvotes: 45,
-   downvotes: 3,
-   replies: [],
-  },
-  {
-   id: 7,
-   course: "Computer Networks",
-   text:
-    "Great pace! The packet sniffing demo was the highlight of the semester.",
-   upvotes: 15,
-   downvotes: 1,
-   replies: [],
-  },
-  {
-   id: 8,
-   course: "Data Structures",
-   text:
-    "Please use a darker marker on the whiteboard, it's hard to see from the back.",
-   upvotes: 9,
-   downvotes: 0,
-   replies: [],
-  },
-  {
-   id: 9,
-   course: "Operating Systems",
-   text: "I feel like the grading on the last quiz was a bit too harsh.",
-   upvotes: 3,
-   downvotes: 15,
-   replies: [],
-  },
-  {
-   id: 10,
-   course: "Computer Networks",
-   text:
-    "The Wireshark lab instructions were a bit outdated for the latest version.",
-   upvotes: 7,
-   downvotes: 2,
-   replies: [],
-  },
- ]);
+export default function ProfessorDashboard() {
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(false);
 
- const [replyText, setReplyText] = useState({});
+  const getHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  });
 
- const handleReply = (id) => {
-  if (!replyText[id]) return;
-  setComments(
-   comments.map((c) =>
-    c.id === id ? { ...c, replies: [...c.replies, replyText[id]] } : c,
-   ),
-  );
-  setReplyText({ ...replyText, [id]: "" });
- };
+  useEffect(() => {
+    fetch(`${API_BASE}/api/courses/managed`, { headers: getHeaders() })
+      .then((res) => res.json())
+      .then((data) => setCourses(data))
+      .catch((err) => console.error(err));
+  }, []);
 
- const filteredComments = comments.filter((c) => c.course === selectedCourse);
+  useEffect(() => {
+    if (!selectedCourse) {
+      setAnalytics(null);
+      return;
+    }
+    setLoading(true);
+    fetch(`${API_BASE}/api/engage/course/${selectedCourse}/analytics`, {
+      headers: getHeaders(),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setAnalytics(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [selectedCourse]);
 
- // ... (Chart data and options from previous response)
- const courseData = {
-  "Operating Systems": [4.2, 3.8, 4.5, 3.9, 4.1],
-  "Data Structures": [4.5, 4.2, 4.4, 4.0, 4.3],
-  "Computer Networks": [3.9, 3.7, 4.1, 3.8, 4.0],
- };
- const labels = [
-  "Content Quality",
-  "Teaching Delivery",
-  "Clarity",
-  "Engagement",
-  "Lecture Pace",
- ];
- const currentData = courseData[selectedCourse] || [];
- const data = {
-  labels,
-  datasets: [
-   {
-    label: "Rating",
-    data: currentData,
-    backgroundColor: "#4f46e5",
-    borderRadius: 8,
-   },
-  ],
- };
+  // BAR CHART: Categorical Metrics
+  const barData = {
+    labels: ["Content", "Delivery", "Clarity", "Engagement", "Pace"],
+    datasets: [
+      {
+        label: "Average Rating (Out of 5)",
+        data: analytics?.available
+          ? [
+              analytics.averages.content,
+              analytics.averages.delivery,
+              analytics.averages.clarity,
+              analytics.averages.engagement,
+              analytics.averages.pace,
+            ]
+          : [],
+        backgroundColor: "#4f46e5",
+        borderRadius: 8,
+      },
+    ],
+  };
 
- return (
-  <DashboardLayout>
-   <div className="p-6 bg-slate-50 min-h-screen">
-    <header className="mb-8">
-     <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-      Professor Analytics
-     </h2>
-     <p className="text-slate-500">
-      Real-time student feedback and performance metrics.
-     </p>
-    </header>
+  // TREND LINE: Feedback Over Time
+  const lineData = {
+    labels: analytics?.trend?.labels || [],
+    datasets: [
+      {
+        label: "Avg Session Score",
+        data: analytics?.trend?.data || [],
+        borderColor: "#10b981", // Emerald 500
+        backgroundColor: "rgba(16, 185, 129, 0.2)",
+        tension: 0.3,
+        borderWidth: 3,
+        pointBackgroundColor: "#ffffff",
+        pointBorderColor: "#10b981",
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        fill: true,
+      },
+    ],
+  };
 
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-     {/* LEFT COLUMN: SELECTION & CHART */}
-     <div className="lg:col-span-2 space-y-6">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-       <select
-        value={selectedCourse}
-        onChange={(e) => setSelectedCourse(e.target.value)}
-        className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-bold text-slate-700"
-       >
-        <option value="">Select a Course to View Analytics</option>
-        <option value="Operating Systems">Operating Systems</option>
-        <option value="Data Structures">Data Structures</option>
-        <option value="Computer Networks">Computer Networks</option>
-       </select>
-      </div>
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: { y: { beginAtZero: true, max: 5 } },
+    plugins: { legend: { display: false } },
+  };
 
-      {selectedCourse && (
-       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-96">
-        <Bar
-         data={data}
-         options={{ responsive: true, maintainAspectRatio: false }}
-        />
-       </div>
-      )}
-     </div>
-
-     {/* RIGHT COLUMN: RECENT COMMENTS */}
-     <div className="lg:col-span-1">
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
-       <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-        <h3 className="font-bold text-slate-800 flex items-center gap-2">
-         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-         Anonymous Student Feed
-        </h3>
-       </div>
-
-       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {selectedCourse ? (
-         filteredComments.map((comment) => (
-          <div
-           key={comment.id}
-           className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3"
-          >
-           <p className="text-sm text-slate-600 leading-relaxed italic">
-            "{comment.text}"
-           </p>
-
-           <div className="flex items-center justify-between">
-            <div className="flex gap-3">
-             <span className="flex items-center gap-1 text-[11px] font-bold text-green-600">
-              ▲ {comment.upvotes}
-             </span>
-             <span className="flex items-center gap-1 text-[11px] font-bold text-red-400">
-              ▼ {comment.downvotes}
-             </span>
+  return (
+    <DashboardLayout>
+      <div className="min-h-[calc(100vh-5rem)] font-sans relative pb-10">
+        <div className="mb-10 animate-in fade-in">
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter flex items-center gap-4">
+            <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-200">
+              <BarChart3 size={32} strokeWidth={2.5} />
             </div>
-           </div>
+            Course Analytics & Insights
+          </h1>
+          <p className="text-slate-500 font-medium mt-3 ml-2 text-lg">
+            Process and visualize anonymous student feedback data.
+          </p>
+        </div>
 
-           {/* Replies */}
-           {comment.replies.map((r, i) => (
-            <div
-             key={i}
-             className="ml-4 p-2 bg-indigo-50 border-l-2 border-indigo-400 text-xs text-indigo-700 rounded-r-md"
-            >
-             <span className="font-bold">You:</span> {r}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* LEFT: CHARTS */}
+          <div className="xl:col-span-2 space-y-8 animate-in slide-in-from-bottom-4">
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">
+                Select Active Course
+              </label>
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.25rem] outline-none focus:border-indigo-500 font-black text-slate-800 shadow-inner appearance-none cursor-pointer"
+              >
+                <option value="">-- Choose a Course to Analyze --</option>
+                {courses.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
-           ))}
 
-           {/* Reply Input */}
-           <div className="flex gap-2 mt-2">
-            <input
-             type="text"
-             placeholder="Reply to student..."
-             value={replyText[comment.id] || ""}
-             onChange={(e) =>
-              setReplyText({ ...replyText, [comment.id]: e.target.value })
-             }
-             className="flex-1 text-xs p-2 rounded-lg border border-slate-200 outline-none focus:border-indigo-400"
-            />
-            <button
-             onClick={() => handleReply(comment.id)}
-             className="bg-indigo-600 text-white text-[10px] px-3 py-1 rounded-lg font-bold"
-            >
-             Send
-            </button>
-           </div>
+            {loading ? (
+              <div className="h-64 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600"></div>
+              </div>
+            ) : analytics && !analytics.available ? (
+              <div className="bg-white rounded-[2.5rem] border-4 border-dashed border-slate-100 p-16 text-center flex flex-col items-center">
+                <AlertCircle size={48} className="text-slate-300 mb-4" />
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                  No Data Available
+                </h3>
+                <p className="text-slate-500 font-medium mt-2">
+                  Students have not submitted feedback for this course yet.
+                </p>
+              </div>
+            ) : analytics?.available ? (
+              <div className="space-y-8">
+                {/* Categorical Bar Chart */}
+                <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm h-[400px]">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-black text-slate-900 text-xl tracking-tight">
+                      Categorical Metrics
+                    </h3>
+                    <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest">
+                      {analytics.count} Responses
+                    </span>
+                  </div>
+                  <div className="h-[280px] w-full">
+                    <Bar data={barData} options={chartOptions} />
+                  </div>
+                </div>
+
+                {/* Time Trend Line Chart */}
+                <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm h-[400px]">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                      <TrendingUp size={20} />
+                    </div>
+                    <h3 className="font-black text-slate-900 text-xl tracking-tight">
+                      Feedback Trends Over Time
+                    </h3>
+                  </div>
+                  <div className="h-[280px] w-full">
+                    <Line data={lineData} options={chartOptions} />
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
-         ))
-        ) : (
-         <p className="text-center text-slate-400 mt-10 text-sm">
-          Select a course to see comments.
-         </p>
-        )}
-       </div>
-      </div>
-     </div>
-    </div>
-   </div>
-  </DashboardLayout>
- );
-}
 
-export default ProfessorDashboard;
+          {/* RIGHT: WRITTEN REMARKS */}
+          <div className="xl:col-span-1 animate-in slide-in-from-right-4">
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl h-full min-h-[700px] flex flex-col relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] -ml-20 -mt-20 pointer-events-none"></div>
+
+              <div className="relative z-10">
+                <div className="p-3 bg-indigo-500/20 text-indigo-300 rounded-2xl w-fit mb-6 border border-indigo-500/30">
+                  <MessageSquareQuote size={24} />
+                </div>
+                <h3 className="font-black text-3xl mb-2 tracking-tight">
+                  Written Remarks
+                </h3>
+                <p className="text-slate-400 text-sm font-medium mb-8">
+                  Anonymous feedback submissions across all sessions.
+                </p>
+              </div>
+
+              <div className="relative z-10 flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                {analytics?.available && analytics.comments.length > 0 ? (
+                  analytics.comments.map((txt, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/50 font-bold text-sm leading-relaxed text-slate-200 shadow-inner"
+                    >
+                      "{txt}"
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-slate-500 py-10 font-bold border-2 border-dashed border-slate-800 rounded-2xl">
+                    No written remarks submitted.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
