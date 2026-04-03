@@ -12,7 +12,10 @@ const courseRoutes = require("./routes/courseRoutes");
 const discussionRoutes = require("./routes/discussionRoutes");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
 
 // ==========================================
