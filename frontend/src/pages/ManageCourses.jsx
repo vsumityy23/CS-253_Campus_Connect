@@ -37,6 +37,7 @@ export default function ManageCourses() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showSkipped, setShowSkipped] = useState(false);
@@ -184,7 +185,10 @@ export default function ManageCourses() {
 
   const handleDelete = async (e, id) => {
     e.stopPropagation();
-    if (!window.confirm("Delete this course and all its sessions?")) return;
+    setDeleteConfirm(id);
+  };
+
+  const executeDelete = async (id) => {
     try {
       const res = await fetch(`${API_BASE}/api/courses/${id}`, {
         method: "DELETE",
@@ -192,9 +196,11 @@ export default function ManageCourses() {
       });
       if (!res.ok) throw new Error("Failed to delete");
       showMessage("Course deleted", "success");
+      setDeleteConfirm(null);
       fetchCourses();
     } catch (err) {
       showMessage(err.message, "error");
+      setDeleteConfirm(null);
     }
   };
 
@@ -216,6 +222,43 @@ export default function ManageCourses() {
               <CheckCircle2 size={18} className="flex-shrink-0" />
             )}
             <p className="font-bold truncate">{toast.msg}</p>
+          </div>
+        )}
+
+        {/* BEAUTIFUL DELETE CONFIRMATION MODAL */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 sm:px-8 py-8 text-center">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle size={32} className="text-white" />
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white mb-2">Delete Course?</h3>
+                <p className="text-red-100 text-sm font-medium">This action cannot be undone</p>
+              </div>
+              
+              <div className="px-6 sm:px-8 py-6 space-y-4">
+                <p className="text-slate-600 font-medium text-sm sm:text-base">
+                  You're about to delete this course and <span className="font-bold text-slate-900">all its sessions</span>. All enrolled students will be unenrolled.
+                </p>
+                
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="flex-1 py-3 sm:py-4 font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => executeDelete(deleteConfirm)}
+                    disabled={loading}
+                    className="flex-1 py-3 sm:py-4 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-xl font-black shadow-lg shadow-red-200 transition-all active:scale-95"
+                  >
+                    {loading ? "Deleting..." : "Delete Course"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -269,7 +312,7 @@ export default function ManageCourses() {
                     </h3>
                     <button
                       onClick={(e) => handleDelete(e, c._id)}
-                      className="text-slate-300 hover:text-red-500 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                      className="text-red-500 sm:text-slate-300 sm:hover:text-red-500 p-1.5 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100 flex-shrink-0"
                     >
                       <Trash2 size={16} />
                     </button>

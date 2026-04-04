@@ -250,7 +250,7 @@ function DashboardLayout({ children }) {
       {/* MOBILE MENU OVERLAY - Visible only on mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-30 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -261,21 +261,13 @@ function DashboardLayout({ children }) {
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="p-6 mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-500/30">
-              <GraduationCap size={26} strokeWidth={2.5} />
-            </div>
-            <span className="text-xl font-black text-white tracking-tight truncate">
-              Campus<span className="text-indigo-400">Connect</span>
-            </span>
+        <div className="p-6 mb-2 flex items-center gap-3">
+          <div className="p-2.5 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+            <GraduationCap size={26} strokeWidth={2.5} />
           </div>
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-slate-400 hover:text-white"
-          >
-            <X size={24} />
-          </button>
+          <span className="text-xl font-black text-white tracking-tight">
+            Campus<span className="text-indigo-400">Connect</span>
+          </span>
         </div>
 
         <nav className="flex-1 px-4 space-y-1 mt-4">
@@ -317,7 +309,7 @@ function DashboardLayout({ children }) {
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* TOP NAVBAR - Responsive */}
-        <header className="relative z-50 h-16 sm:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 gap-2">
+        <header className="sticky top-0 z-40 h-16 sm:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 lg:px-8 shrink-0 gap-2">
           {/* LEFT: Hamburger Menu & Logo */}
           <div className="flex items-center gap-2 min-w-0">
             <button
