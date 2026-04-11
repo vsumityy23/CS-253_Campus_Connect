@@ -29,7 +29,9 @@ function Signup() {
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // UI State
   const [loading, setLoading] = useState(false);
@@ -193,6 +195,11 @@ function Signup() {
     } else if (strengthScore < 2) {
       newErrors.password = "Password is too weak. Add uppercase/numbers.";
     }
+    if (!confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       return setErrors(newErrors);
@@ -219,6 +226,9 @@ function Signup() {
       if (!res.ok) throw new Error(data.msg || "Signup failed");
 
       setToast({ type: "success", message: "Account created! Redirecting..." });
+      // Reset form fields
+      setPassword("");
+      setConfirmPassword("");
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       setToast({
@@ -640,6 +650,71 @@ function Signup() {
                     number.
                   </p>
                 )}
+              </div>
+
+              {/* Confirm Password Field */}
+              <div>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative group overflow-hidden rounded-xl">
+                  <div
+                    className={`absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none ${errors.confirmPassword ? "text-red-400" : "text-slate-400"}`}
+                  >
+                    <Lock size={18} />
+                  </div>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (errors.confirmPassword)
+                        setErrors({ ...errors, confirmPassword: null });
+                    }}
+                    placeholder="••••••••"
+                    className={`w-full pl-11 pr-12 py-3.5 bg-white border-2 rounded-xl outline-none transition-all font-medium text-slate-700 pb-4 ${
+                      errors.confirmPassword
+                        ? "border-red-500 focus:ring-1 ring-red-100"
+                        : "border-slate-200 focus:border-indigo-500"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-2xl hover:scale-110 transition-transform focus:outline-none pb-1"
+                    title={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? "🐵" : "🙈"}
+                  </button>
+
+                  {confirmPassword.length > 0 && (
+                    <div className="absolute bottom-0 left-0 h-1.5 bg-slate-100 w-full rounded-b-xl flex">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          calculateStrength(confirmPassword) === 0
+                            ? "w-1/3 bg-red-500"
+                            : calculateStrength(confirmPassword) === 1
+                              ? "w-1/3 bg-red-500"
+                              : calculateStrength(confirmPassword) === 2
+                                ? "w-2/3 bg-yellow-500"
+                                : "w-full bg-green-500"
+                        }`}
+                      ></div>
+                    </div>
+                  )}
+                </div>
+
+                {errors.confirmPassword ? (
+                  <p className="text-red-500 text-xs mt-1.5 font-bold flex items-center gap-1">
+                    <AlertCircle size={12} /> {errors.confirmPassword}
+                  </p>
+                ) : confirmPassword.length > 0 ? (
+                  <p className={`text-xs mt-1.5 font-bold flex items-center gap-1 ${
+                    confirmPassword === password ? "text-green-500" : "text-red-500"
+                  }`}>
+                    {confirmPassword === password ? "✓ Passwords match" : "⚠ Passwords do not match"}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-4 pt-2">

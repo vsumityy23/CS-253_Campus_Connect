@@ -34,6 +34,20 @@ exports.createCourse = async (req, res) => {
       return res.status(400).json({ msg: "All fields are required" });
     }
 
+    // Validate dates
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (start < today) {
+      return res.status(400).json({ msg: "Start date cannot be in the past" });
+    }
+
+    if (end < start) {
+      return res.status(400).json({ msg: "End date must be after start date" });
+    }
+
     const course = await Course.create({
       name,
       startDate,
@@ -203,6 +217,7 @@ exports.getMyCourses = async (req, res) => {
     const courses = await Course.find({ 
       $or: [{ professor: req.user.id }, { coInstructors: req.user.id }] 
     })
+    .populate("professor", "name email")
     .populate("students", "name email username")
     .populate("coInstructors", "name email");
     res.json(courses);
@@ -231,5 +246,44 @@ exports.getCourseSessions = async (req, res) => {
     res.json(sessions);
   } catch (err) {
     res.status(500).json({ msg: "Server error fetching sessions" });
+  }
+};
+
+// [F5] Get unread comment counts per session for a course (server-side, WhatsApp-style)
+// Returns: { "<sessionId>": <unreadCount>, ... }
+exports.getUnreadCounts = async (req, res) => {
+  try {
+    const Comment = require("../models/Comment");
+    const UserSessionRead = require("../models/UserSessionRead");
+
+    // Get all sessions for this course
+    const sessions = await Session.find({ course: req.params.id }).select("_id");
+    const sessionIds = sessions.map(s => s._id);
+
+    // Fetch this user's last-seen records for these sessions in one query
+    const readRecords = await UserSessionRead.find({
+      user: req.user.id,
+      session: { $in: sessionIds },
+    }).select("session lastSeenAt");
+
+    // Build a map: sessionId -> lastSeenAt (or epoch 0 if never seen)
+    const seenMap = {};
+    readRecords.forEach(r => { seenMap[r.session.toString()] = r.lastSeenAt; });
+
+    // Count comments newer than lastSeenAt for each session
+    const result = {};
+    await Promise.all(sessionIds.map(async (sid) => {
+      const lastSeen = seenMap[sid.toString()] || new Date(0);
+      const count = await Comment.countDocuments({
+        session: sid,
+        createdAt: { $gt: lastSeen },
+      });
+      result[sid.toString()] = count;
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error fetching unread counts" });
   }
 };

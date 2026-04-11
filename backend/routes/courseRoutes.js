@@ -11,6 +11,7 @@ router.use(verifyToken); // ALL routes below require token
 router.get("/managed", ctrl.getMyCourses); // <--- FIXED: Changed to getMyCourses
 router.get("/enrolled", ctrl.getEnrolledCourses); // For students
 router.get("/:id/sessions", ctrl.getCourseSessions); // For viewing dates
+router.get("/:id/sessions/unread-counts", ctrl.getUnreadCounts); // WhatsApp-style unread
 
 // Manage courses (Professor)
 router.post("/", ctrl.createCourse);

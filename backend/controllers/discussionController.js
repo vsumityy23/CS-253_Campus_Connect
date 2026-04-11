@@ -3,6 +3,22 @@ const Comment = require("../models/Comment");
 const Feedback = require("../models/Feedback");
 const Course = require("../models/Course");
 const Session = require("../models/Session");
+const UserSessionRead = require("../models/UserSessionRead");
+
+// Mark a session as read for the current user (upsert lastSeenAt = now)
+exports.markSessionRead = async (req, res) => {
+  try {
+    await UserSessionRead.findOneAndUpdate(
+      { user: req.user.id, session: req.params.sessionId },
+      { lastSeenAt: new Date() },
+      { upsert: true, new: true }
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error marking session read" });
+  }
+};
 
 // --- DISCUSSION (CHAT) ---
 exports.getComments = async (req, res) => {

@@ -35,8 +35,10 @@ function DashboardLayout({ children }) {
   const [identityInput, setIdentityInput] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
   // NEW: State to track if we are showing the custom deletion confirmation
@@ -67,6 +69,13 @@ function DashboardLayout({ children }) {
     setActiveDialog(null);
     setShowDeleteConfirm(false);
     setErrors({});
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setIdentityInput("");
+    setDeletePassword("");
   };
 
   const getStrengthScore = (pwd) => {
@@ -98,7 +107,11 @@ function DashboardLayout({ children }) {
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
-    if (strengthScore < 3) return setErrors({ password: "Weak password." });
+    const pwdErrors = {};
+    if (strengthScore < 3) pwdErrors.password = "Weak password.";
+    if (!confirmPassword) pwdErrors.confirmPassword = "Please confirm your password";
+    if (newPassword !== confirmPassword) pwdErrors.confirmPassword = "Passwords do not match";
+    if (Object.keys(pwdErrors).length > 0) return setErrors(pwdErrors);
     try {
       const res = await fetch(`${API_BASE}/api/users/password`, {
         method: "PUT",
@@ -109,6 +122,9 @@ function DashboardLayout({ children }) {
       if (!res.ok) throw new Error(data.msg);
       showMessage("Password changed!");
       closeDialogs();
+      setNewPassword("");
+      setConfirmPassword("");
+      setCurrentPassword("");
     } catch (err) {
       setErrors({ current: err.message });
     }
@@ -219,20 +235,21 @@ function DashboardLayout({ children }) {
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-3">
             Main Menu
           </p>
-          {menu.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group border-2 ${isActive ? "bg-indigo-600 text-white border-white shadow-lg shadow-indigo-900/50" : "border-transparent hover:bg-slate-800 hover:text-white"}`
-              }
-            >
-              <span className="opacity-70 group-hover:opacity-100">
-                {item.icon}
-              </span>
-              <span className="font-medium">{item.name}</span>
-            </NavLink>
-          ))}
+          {menu.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path, { state: { reset: true } })}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group border-2 ${
+                  isActive ? "bg-indigo-600 text-white border-white shadow-lg shadow-indigo-900/50" : "border-transparent hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <span className="opacity-70 group-hover:opacity-100">{item.icon}</span>
+                <span className="font-medium">{item.name}</span>
+              </button>
+            );
+          })}
         </nav>
 
         {/* BOTTOM SECTION: LOGOUT */}
@@ -274,21 +291,21 @@ function DashboardLayout({ children }) {
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-4 mb-3">
             Main Menu
           </p>
-          {menu.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group border-2 ${isActive ? "bg-indigo-600 text-white border-white shadow-lg shadow-indigo-900/50" : "border-transparent hover:bg-slate-800 hover:text-white"}`
-              }
-            >
-              <span className="opacity-70 group-hover:opacity-100">
-                {item.icon}
-              </span>
-              <span className="font-medium">{item.name}</span>
-            </NavLink>
-          ))}
+          {menu.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                onClick={() => { navigate(item.path, { state: { reset: true } }); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group border-2 ${
+                  isActive ? "bg-indigo-600 text-white border-white shadow-lg shadow-indigo-900/50" : "border-transparent hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                <span className="opacity-70 group-hover:opacity-100">{item.icon}</span>
+                <span className="font-medium">{item.name}</span>
+              </button>
+            );
+          })}
         </nav>
 
         {/* BOTTOM SECTION: LOGOUT */}
@@ -497,6 +514,48 @@ function DashboardLayout({ children }) {
                         </div>
                       )}
                     </div>
+                    {errors.password && (
+                      <p className="text-red-500 text-xs font-bold">
+                        {errors.password}
+                      </p>
+                    )}
+
+                    <div className="relative group overflow-hidden rounded-xl">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                        <Lock size={18} />
+                      </div>
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          if (errors.confirmPassword)
+                            setErrors({ ...errors, confirmPassword: null });
+                        }}
+                        placeholder="Confirm Password"
+                        className={`w-full pl-11 pr-12 py-3.5 bg-slate-50 border-2 rounded-xl outline-none font-medium text-slate-700 pb-4 ${errors.confirmPassword ? "border-red-500" : "border-slate-200 focus:border-indigo-500"}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-2xl pb-1"
+                      >
+                        {showConfirmPassword ? "🐵" : "🙈"}
+                      </button>
+                      {confirmPassword.length > 0 && (
+                        <div className="absolute bottom-0 left-0 h-1.5 bg-slate-100 w-full flex">
+                          <div
+                            className={`h-full transition-all duration-300 ${getStrengthScore(confirmPassword) === 1 ? "w-1/3 bg-red-500" : getStrengthScore(confirmPassword) === 2 ? "w-2/3 bg-yellow-500" : "w-full bg-green-500"}`}
+                          ></div>
+                        </div>
+                      )}
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-red-500 text-xs font-bold">
+                        {errors.confirmPassword}
+                      </p>
+                    )}
+
                     <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black">
                       Change Password
                     </button>

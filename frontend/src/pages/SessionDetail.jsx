@@ -61,6 +61,20 @@ export default function SessionDetail() {
     }
   }, [sessionId, isStudent]);
 
+  // Mark this session as read on the SERVER when entering and again when leaving.
+  // The cleanup (unmount) fires as the user navigates away — so lastSeenAt always
+  // covers the latest Socket.IO message they saw during the chat.
+  useEffect(() => {
+    const markRead = () =>
+      fetch(`${API_BASE}/api/engage/session/${sessionId}/mark-read`, {
+        method: "POST",
+        headers: getHeaders(),
+      }).catch(() => {}); // fire-and-forget
+
+    markRead(); // on enter
+    return () => markRead(); // on leave
+  }, [sessionId]);
+
   // Initial Fetch (Gets chat history when opening the page)
   useEffect(() => {
     fetch(`${API_BASE}/api/engage/session/${sessionId}/comments`, {
@@ -183,7 +197,7 @@ export default function SessionDetail() {
         )}
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/courses", { state: { openCourseId: courseId } })}
           className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-black mb-6 w-fit transition-colors"
         >
           <ArrowLeft size={16} strokeWidth={3} /> Return to Schedule

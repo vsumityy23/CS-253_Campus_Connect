@@ -298,6 +298,14 @@ setTimeout(() => {
               Sign up
             </Link>
           </p>
+          <p className="text-center">
+            <Link
+              to="/admin-login"
+              className="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors"
+            >
+              Admin login →
+            </Link>
+          </p>
         </div>
       </div>
     </div>

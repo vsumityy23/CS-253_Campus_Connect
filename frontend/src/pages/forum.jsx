@@ -234,34 +234,30 @@ function Forum() {
                   className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row transition-all hover:border-indigo-300"
                 >
                   {/* VOTING COLUMN */}
-                  <div className="flex flex-row md:flex-col items-center justify-center gap-2 bg-slate-50 p-4 border-b md:border-b-0 md:border-r border-slate-100 min-w-[80px]">
+                  <div className="flex flex-row md:flex-col items-center justify-center gap-1 bg-slate-50 p-4 border-b md:border-b-0 md:border-r border-slate-100 min-w-[80px]">
                     <button
                       onClick={() => handleVote(post._id, post.userVote, "up")}
                       className={`transition-colors p-1.5 rounded-lg ${post.userVote === "up" ? "text-emerald-600 bg-emerald-100" : "text-slate-400 hover:text-emerald-600 hover:bg-slate-200"}`}
                     >
                       <ArrowBigUp
                         size={24}
-                        className={
-                          post.userVote === "up" ? "fill-emerald-600" : ""
-                        }
+                        className={post.userVote === "up" ? "fill-emerald-600" : ""}
                       />
                     </button>
-                    <span
-                      className={`font-black text-lg ${post.userVote === "up" ? "text-emerald-600" : post.userVote === "down" ? "text-red-600" : "text-slate-700"}`}
-                    >
-                      {post.upvoteCount - post.downvoteCount}
+                    <span className="font-black text-sm text-emerald-600">
+                      {post.upvoteCount}
+                    </span>
+                    <div className="h-px w-8 bg-slate-200 my-1" />
+                    <span className="font-black text-sm text-red-500">
+                      {post.downvoteCount}
                     </span>
                     <button
-                      onClick={() =>
-                        handleVote(post._id, post.userVote, "down")
-                      }
+                      onClick={() => handleVote(post._id, post.userVote, "down")}
                       className={`transition-colors p-1.5 rounded-lg ${post.userVote === "down" ? "text-red-600 bg-red-100" : "text-slate-400 hover:text-red-600 hover:bg-slate-200"}`}
                     >
                       <ArrowBigDown
                         size={24}
-                        className={
-                          post.userVote === "down" ? "fill-red-600" : ""
-                        }
+                        className={post.userVote === "down" ? "fill-red-600" : ""}
                       />
                     </button>
                   </div>

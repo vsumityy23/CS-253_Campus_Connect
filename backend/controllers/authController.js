@@ -128,14 +128,19 @@ exports.signup = async (req, res) => {
 // backend/controllers/authController.js -> login function update
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ msg: "Missing fields" });
+    const { email, password, role } = req.body;
+    if (!email || !password || !role) return res.status(400).json({ msg: "Missing fields" });
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(400).json({ msg: "User not found" });
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ msg: "Invalid credentials" });
+
+    // Validate that selected role matches user's actual role
+    if (user.role !== role) {
+      return res.status(403).json({ msg: `Login failed. This account is registered as a ${user.role}. Please select the correct role.` });
+    }
 
     const token = jwt.sign({ id: user._id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
 

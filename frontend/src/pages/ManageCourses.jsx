@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import {
   BookOpen,
   Calendar,
@@ -38,6 +39,16 @@ export default function ManageCourses() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  const location = useLocation();
+
+  // Reset to course list when sidebar navigates here with reset:true
+  useEffect(() => {
+    if (location.state?.reset) {
+      setSelectedCourse(null);
+      window.history.replaceState({}, "");
+    }
+  }, [location.state]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showSkipped, setShowSkipped] = useState(false);
@@ -86,6 +97,21 @@ export default function ManageCourses() {
     e.preventDefault();
     if (courseForm.daysOfWeek.length === 0)
       return showMessage("Select at least one day.", "error");
+    
+    // Validate dates
+    const startDate = new Date(courseForm.startDate);
+    const endDate = new Date(courseForm.endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      return showMessage("Start date cannot be in the past", "error");
+    }
+
+    if (endDate < startDate) {
+      return showMessage("End date must be after start date", "error");
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/courses`, {
@@ -317,15 +343,26 @@ export default function ManageCourses() {
                       <Trash2 size={16} />
                     </button>
                   </div>
-                  <div className="space-y-2 mt-auto text-xs sm:text-sm">
-                    <div className="flex items-center gap-2 text-slate-600 font-medium">
-                      <Users size={14} /> {c.students.length} Enrolled
+                  <div className="space-y-2 mt-auto text-xs sm:text-sm pt-2">
+                    {(c.professor || (c.coInstructors && c.coInstructors.length > 0)) && (
+                      <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                          <GraduationCap size={16} />
+                        </div>
+                        <span className="truncate">{[c.professor?.name || c.professor?.username || c.professor?.email, ...(c.coInstructors?.map(ci => ci.name || ci.username || ci.email) || [])].filter(Boolean).join(", ")}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <Users size={16} />
+                      </div>
+                      <span>{c.students.length} Enrolled</span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600 font-medium">
-                      <Calendar size={14} />
-                      <span className="truncate">
-                        {c.daysOfWeek.join(", ")}
-                      </span>
+                    <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <Calendar size={16} />
+                      </div>
+                      <span className="truncate">{c.daysOfWeek.join(", ")}</span>
                     </div>
                   </div>
                 </div>
@@ -371,6 +408,12 @@ export default function ManageCourses() {
                     <Users size={14} className="text-emerald-500" />{" "}
                     {selectedCourse.students.length} Enrolled
                   </span>
+                  {(selectedCourse.professor || (selectedCourse.coInstructors && selectedCourse.coInstructors.length > 0)) && (
+                    <span className="flex items-center gap-1.5 flex-shrink-0">
+                      <GraduationCap size={14} className="text-indigo-500" />{" "}
+                      {[selectedCourse.professor?.name || selectedCourse.professor?.username || selectedCourse.professor?.email, ...(selectedCourse.coInstructors?.map(ci => ci.name || ci.username || ci.email) || [])].filter(Boolean).join(", ")}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="relative z-10 flex flex-wrap gap-1.5 sm:gap-2">
